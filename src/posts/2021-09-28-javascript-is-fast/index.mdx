@@ -1,0 +1,164 @@
+---
+title: "We've been lied to: JavaScript is very fast"
+description: "Hello World"
+---
+
+## The stigma
+JavaScript has been carrying a stigma of being 'slow' for many years now.
+Early implementations **were** slow (particularly in the Internet Explorer era). Google Chrome, having been a powerhouse of performance upon release in 2008, has dramatically increased its performance again over the last 13 years [Celebrating 10 years of V8](https://v8.dev/blog/10-years).
+
+The nature of JS having evolved from adding small sprinkles of interactivity to webpages has exacerbated this issue by labeling it a 'toy' language to many.
+
+Another term thrown around when discussing performance is that it is a 'single threaded' language. This is somewhat of a meaningless statement... as most languages (PHP, C#, Java, C) are 'single threaded' unless the developer explicitly implements support for multi-threading.
+I believe this sentiment has come from 2 places:
+
+1. Code running in the browser runs on the 'main' thread by default and will therefore cause irritating browser freezes and stuttering if the webpage is trying to do anything CPU intensive. This is because as long as JS code is running, the browser cannot update the screen.
+2. Node.js took a slightly different approach to serving web content than existing technologies at the time did (PHP, ASP, JSP). Rather than forking for every incoming request, or using a pool of processes, node typically uses a single process. This process then calls a 'handler' function every time a web request comes in. This design allows extremely fast responses, and low overhead per-request. However, because there is ultimately only a single process running, if the handler function performs significant CPU work, this process is 'held up' from serving any other requests until the first request is complete.
+
+Both of these problems can be easily overcome with well planned code. Both browsers & Node.js provide mechanisms for offloading heavy tasks to background threads, preventing the main thread from blocking.
+See
+[Web workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)
+and
+[Node.js Worker threads](https://nodejs.org/api/worker_threads.html).
+
+## Testing performance in modern environments
+Provided the above situations are appropriately handled, modern JavaScript engines are incredibly fast at CPU bound tasks.
+To test the speed of modern engines, I wrote a small synthetic benchmark in C, then ported that same code to JavaScript to compare performance.
+
+_Disclaimer: This benchmark does not represent real world usage, a small loop performing simple operations is giving JS engines the best change possible to optimise the speed of this code._
+
+### C code:
+```
+#define ITERATIONS 1000000000
+
+int main() {
+    long myNum = 1;
+    for (long i = 0; i <= ITERATIONS; i++) {
+        myNum *= i;
+        myNum++;
+    }
+
+    return 0;
+}
+```
+
+### JavaScript code:
+```javascript
+
+const ITERATIONS = 1000000000;
+
+function main() {
+    let myNum = 0;
+    for (let i = 0; i <= ITERATIONS; i++) {
+        myNum *= i;
+        myNum++;
+    }
+}
+```
+
+### Results
+I ran this code on my 2020 M1 Macbook Pro.
+| Language | Environment   | Million iterations/s (larger is better) |
+|:--------:|---------------|-----------------------------------------|
+| C        | clang 13.0.0  | 1000                                    |
+| JS       | Node.JS 14    | 455                                     |
+| JS       | Safari 14.1.2 | 446                                     |
+| JS       | Chrome 93     | 440                                     |
+| JS       | Firefox 92    | 347                                     |
+
+Obviously the C code here is the fastest, and when compiled as a production build comes out to only 13 ARM64 instructions (within the loop).
+
+What's interesting here is that C and JavaScript are within the same order of magnitude in iterations per second. Clearly modern JS isn't the sloth of a dynamically typed interpreted language, crawling down the lines of code as we have been told it is.
+I also find it interesting just how close the different JS engines are in performance. I suspect given the simplicity of the code all 3 engines tested here ([JavaScriptCore](https://developer.apple.com/documentation/javascriptcore), [V8](https://v8.dev/), and [SpiderMonkey](https://spidermonkey.dev/)) are JIT compiling this code to a very similar list of CPU instructions.
+
+![Drag race](https://media.giphy.com/media/u5bbqJE63sBGM/giphy.gif)
+
+## Can someone explain what JIT actually means?
+JIT, or 'just in time' compilation is an optimisation technique used to increase the execution performance of interpreted languages without requiring a pre-compile step. Under the hood, these three engines are generating machine code on the fly, is then directly executed on the processor. This bypasses the overhead of the engine making a decision on what to do next after processing each instruction.
+JIT is beneficial over pre-compiling as there is no need to generate binaries for every target processor, and the engine can make intelligent decisions at runtime on exactly which functions it believes are worth generating machine code for.
+Lin Clark has written an excellent article explaining this process [A crash course in just-in-time (JIT) compilers](https://hacks.mozilla.org/2017/02/a-crash-course-in-just-in-time-jit-compilers/).
+
+Firefox was the first browser to support JIT compilation via [TraceMonkey](https://wiki.mozilla.org/JavaScript:TraceMonkey), way back in 2008, followed shortly by Google Chrome. JavaScript really has been fast for 13 years now! Now, all major JS engines support and rely on JIT for high performance. See [List of ECMAScript engines](https://en.wikipedia.org/wiki/List_of_ECMAScript_engines).
+
+## What does this mean practically?
+### More readable & maintainable code
+With the safety net of fast engines, we can sacrifice the 'fastest' implementation of our functions for more readable & maintainable versions.
+
+For example:
+```javascript
+function findSmallestPositiveValue(numbers) {
+    let smallest = Infinity;
+
+    const numbersLength = numbers.length; // avoid property look up in loop
+    for (let i = 0; i < numbersLength; i++) {
+        const number = numbers[i]; // avoid repeated index lookups
+        if (number > 0 && number < smallest) {
+            // found a new smaller, positive number
+            smallest = number;
+        }
+    }
+
+    return smallest;
+}
+```
+Can comfortably be re-written as
+```javascript
+function findSmallestPositiveValue(numbers) {
+    return numbers
+        .filter(x => x > 0) // remove negative values
+        .sort()[0];  // sort from smallest to largest, and return first value
+}
+```
+Personally, I'd prefer to read & maintain the second version.
+
+Technically, this function wastes CPU and memory by copying the array, and sorting every value even thought we only care about finding the smallest value. The first function is 'less work' for the computer to perform. However, with fast engines we can trust them to optimise our code to be fast anyway. Even if the second function takes twice as long as the first, we are in the realm of nanoseconds.
+
+### Less developer/stack overflow disagreements over performance
+Because it doesn't matter! Why waste time debating the performance benefits of `for` over `.forEach()` if the difference is 2ns. Why bother replacing `delete user.password;` with `user.password = undefined;` if a benchmark looping the two methods 1 billion times is required to show any discernible difference between the two. Write the code that makes the most sense to write, not the code that benchmarks the quickest.
+
+### Develop applications faster
+Missing an API endpoint to list the number of posts a user has? Just aggregate in the browser and put the new API on the backlog. It's not worth slowing down product development to build things the 'most performant' way when the second most performant way can be done right now, and the user will likely not notice any difference.
+
+Need to process data from large files? No need to spin up a new project in Rust, write a JS function to perform processing and run it on a new thread.
+
+### Cross-platform development
+`Write once, run anywhere` may have been Sun's slogan for Java, but JavaScript truly takes this to the next level. Almost every smart device has the ability to run JS, and given the speed of modern engines this can be leveraged to quickly develop for every platform using familiar tools.
+
+Given performance is not an issue, there is little incentive for software companies to create 4 teams to manage Windows, macOS, Android and iOS independently in their native languages and frameworks.
+
+This is already the reality of many modern applications: browsers, electron, React-native and other JavaScript based platforms allow development companies to use their existing JavaScript knowledge & resources across many platforms:
+* Facebook
+* Instagram
+* Spotify
+* AirBnB
+* Tesla
+* Uber eats
+* Slack
+* MS Teams
+* VS Code
+
+All use JavaScript (or, more likely [TypeScript](https://www.typescriptlang.org/)) to ship their applications across many platforms.
+
+
+### Future use in performance sensitive applications
+Processing of large data sets, calculating scientific simulations and game engines have typically been reserved for lower level languages such as C++, or higher level languages such as Python or C# with calls to custom C code for high performance computations.
+As the speed of JavaScript improves these requirements become less important, over the next few years we may see systems such as game engines supporting logic written in JavaScript.
+
+Interestingly, Unity previously supported a dialect of JavaScript called “UnityScript” [but it seems to have been deprecated](https://blog.unity.com/community/unityscripts-long-ride-off-into-the-sunset)
+
+## Caveats
+As 'Atwood's law' famously states:
+> Any application that can be written in JavaScript, will eventually be written in JavaScript
+
+However, while JavaScript certainly has taken over the world there are absolutely some places where a garbage collected, dynamic language is not appropriate or even possible.
+Processing of data that requires huge amounts of memory allocation & deallocation may suffer dramatically at the cost of JS garbage collection. Similarly, low power/memory devices such as microcontrollers may not have the memory available to support a full JavaScript engine.
+
+## We've been lied to
+JavaScript isn't slow, it's not a toy. We get the best of many worlds when building applications with JS:
+* Rapid development
+* Cross platform support
+* Ease of maintenance
+* High performance
+
+Next time someone suggests you might need to re-write your application in Rust to achieve high performance, politely tell them to run some benchmarks on their problem set. They might be surprised at just how fast JS can be.
+

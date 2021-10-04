@@ -1,0 +1,188 @@
+---
+title: "JavaScript promises: The core bits"
+description: "Hello World"
+---
+
+It doesn't take long working with JavaScript before the big bad wolf of asynchronous operations comes out to play.
+In Python we can just
+```python
+my_ip = urllib.request.urlopen('https://api.ipify.org').read().decode()
+print(my_ip)
+```
+But JS requires
+```javascript
+const req = new XMLHttpRequest();
+req.onload = () => {
+    const myIp = req.responseText
+    console.log(myIp);
+};
+req.open('get', 'https://api.ipify.org');
+req.send();
+```
+
+What is going on? Why is JS this so different in approach to other languages!?
+
+## JS origins
+JavaScript has evolved from a language designed to add small amounts of interactivity to a webpage.
+In this basic form, code must 'block' the web browsers rendering while executing:
+If a user clicks a button, we must execute our button handling code before we allow them to interact anymore with the page.
+This makes implementing webpage interactivity simple, but presents a problem for long-running tasks, such as making API requests.
+
+In our previous Python code, our execution 'pauses' while we wait for our API to respond to our request. This makes the code very easy to read and write.
+If our Javascript did the same thing, our entire web page would freeze up!
+Instead of pausing, JS takes a 'callback' approach, where a long-running request starts (e.g., an API request),
+and we provide a function to 'call back' once this request has completed.
+This allows our browser to keep performing other tasks while we wait for the server.
+
+Some other languages/frameworks also use this pattern to ensure user interfaces remain fast. For example Swift on iOS, which makes heavy use of 'delegates' to allow asynchronous operations
+```swift
+let url = URL(string: "https://api.ipify.org")!
+var request = URLRequest(url: url)
+request.httpMethod = "GET"
+NSURLConnection.sendAsynchronousRequest(request, queue: OperationQueue.main) {(response, data, error) in
+    guard let data = data else { return }
+    print(String(data: data, encoding: .utf8)!)
+}
+```
+iOS requires this for the same reason that the browser does: if an application 'paused' execution while we waited on an API call to complete, our devices would appear to 'freeze' continuously while background operations complete.
+
+## Callback hell
+Through the rise of interactive web applications, JavaScript grew from simple sprinkles of interactivity to fully fledged business logic.
+As this logic became more complicated, the 'simple' solution of callbacks started to grow in complexity.
+
+Often many async operations need to be chained together, one after the other, to create one larger workflow.
+For example, we may want to
+  1. fetch some data
+  2. parse that data
+  3. store the result
+  4. notify the user
+
+Each step here requires the previous to have completed. JavaScript traditionally has used callbacks,
+allowing the developer to provide a function to call once an async operation has completed.
+
+```js
+function onFetchDataComplete(error, data) {
+    if (error) {
+        console.error("fetchData failed :(", error);
+    } else {
+        console.log("fetchData complete!", data);
+    }
+}
+
+fetchData(onFetchDataComplete);
+```
+
+Using this callback pattern for our larger workflow, things start to become a little complex.
+
+```js
+fetchData((fetchDataError, data) => {
+    if (fetchDataError) {
+        console.error(fetchDataError);
+        return;
+    }
+
+    parseData(data, (parseDataError, parsedData) => {
+        if (parseDataError) {
+            console.error(parseDataError);
+            return;
+        }
+
+        storeResult(parsedData, (storeError) => {
+            if (storeError) {
+                console.error(storeError);
+                return;
+            }
+
+            notifyUser((notifyError) => {
+                if (notifyError) {
+                    console.error(storeError);
+                    return;
+                }
+
+                console.log("Process completed");
+            });
+        });
+    });
+});
+```
+
+This tree structure is colloquially known as 'nested callback hell'
+as every operation adds another layer of nesting and code becomes very difficult to maintain and read.
+
+
+## The promise land
+Enter promises: while callbacks solve a problem, they don't solve it in a particularly logical way. Typically functions are called, and they return a result.
+This callback pattern doesn't make use of return values, and instead we must provide arguments on what to do once the function is complete.
+
+Promises take us back to more familiar patterns: a function can be called with relevant arguments, and it will return a value.
+However, async functions still cannot block execution. The program must continue running, even if the return value isn't ready yet.
+
+To work around this problem, async functions can return a 'promise' which will in the future, contain the return value of the operation.
+This allows async functions to return _something_ immediately, even if they are still waiting on, for example, an API call to complete.
+
+Promises are an object, with 3 states: pending, fulfilled and rejected. Typically, an async operation will return a promise in the 'pending' state.
+This indicates that an operation is still in progress, but a value will be available in the future.
+'Then handlers' can be attached to this promise in order to perform some task once the promise 'resolves' to the 'fulfilled' state.
+When this 'then handler' is called, the value the promise resolved with will be provided as the first argument to the handler function.
+
+Re-writing our [first example](#small-callback-workflow) of fetching data using promises:
+```js
+const fetchDataPromise = fetchData();
+fetchDataPromise
+    .then(data => console.log("fetchData complete!", data))
+    .catch(error => console.error("fetchData failed :(", error));
+```
+
+This is more concise than our earlier example using callbacks, but not significantly better.
+The value of promises starts to really show when chaining many async operations together, as we did in [here](#large-callback-workflow)
+<a id="large-promise-workflow"></a>
+```js
+fetchData()
+    .then(parseData)
+    .then(storeResult)
+    .then(notifyUser)
+    .then(() => console.log("Process complete!"))
+    .catch(console.error);
+```
+
+Wow! That's an improvement on our callback hell code!
+
+The secret sauce here is that promises are designed to allow chaining.
+Each time we attach a 'next' function to run in the chain via `.then`,
+a new promise is returned that will resolve with the value of our next handler.
+This is a little confusing, but essentially our code above is creating 5 promises:
+  1. A promise that resolves when fetchData completes.
+  2. A promise that resolves when parseData completes.
+  3. A promise that resolves when storeResult completes.
+  4. A promise that resolves when notifyUser completes.
+  5. A promise that resolves when our `console.log("process complete")` completes (immediately).
+
+We are attaching '`.then`' handlers to each of these promises, to extend the chain of operations.
+
+There is another interesting line in the two examples above: `.catch()`.
+This attaches a handler to run if a promise 'rejects', that is fails to complete its async operation.
+If a promise rejects, and sub promises returned by `.then()` handlers will also reject.
+This allows us to attach only a single error handler at the bottom of our promise chain,
+rather than handling errors at every stage in our async process like we did in the [callback workflow](#large-callback-workflow)
+
+## async/await
+In the modern JS environment we can take promises a step further with async functions.
+This syntax allows automatically moving blocks of code into 'then' handlers, allowing developers to write code that reads clearly.
+Converting our example code to use async/await:
+```javascript
+async function runWorkflow() {
+    const data = await fetchData();
+    const parsedData = await parseData();
+    await storeResult(parsedData);
+    await notifyUser();
+
+    console.log("Process complete!");
+}
+```
+
+This final code is much easier to read, write, and maintain. Certainly much simpler than our original [callback workflow](#large-callback-workflow)!
+
+It's important to note that this async/await syntax is still using promises under the hood.
+In fact our `runWorkflow()` is implicitly returning a promise that will resolve when the workflow completes, or reject if it fails.
+
+Now that you know the what and why of promises, let's look at [the core bits](#) of a promise implementation!
