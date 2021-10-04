@@ -1,8 +1,41 @@
+* {
+  box-sizing: border-box;
+}
 
 body {
   font-family: "Open Sans",'Helvetica Neue',Helvetica,Arial,sans-serif;
+
+  font-size: 18px;
+  line-height: 1.8;
+
+  background-color: #222;
+  color: #fff;
+  padding: 20px;
+
+  background-image: url('https://www.transparenttextures.com/patterns/axiom-pattern.png');
+  //background-image: url('https://www.transparenttextures.com/patterns/3px-tile.png');
+  background-attachment: fixed;
 }
 
-* {
-  box-sizing: border-box;
+a {
+  color: #bbb;
+}
+
+a.anchor {
+  margin-right: 10px;
+  svg path {
+    fill: #fff;
+  }
+}
+
+h1 {
+
+}
+
+h2 {
+
+}
+
+h3 {
+
 }

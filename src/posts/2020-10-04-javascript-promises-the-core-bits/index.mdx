@@ -1,0 +1,502 @@
+---
+title: "JavaScript promises: The core bits"
+description: "Hello World 2"
+---
+
+Now that we understand [the history](#) of promises in JavaScript,
+let's create a promise implementation from scratch to demystify the internals of promises.
+
+Promises are natively supported [basically everywhere](https://caniuse.com/promises) where JS runs.
+However, the [promise specification](https://promisesaplus.com/) can be 100% implemented in pure JS!
+
+The A+ Promise specification implemented in [all major environments](https://caniuse.com/promises)
+covers many edge cases and attempts to avoid any undefined behaviour, to ensure all implementations are as consistent as possible.
+Let's start by building a "practical" promise implementation, ignoring the weirder edge cases for now.
+Then we can flesh our implementation out to be A+ spec compliant in [JavaScript promises: the weird bits](#).
+
+## A starting point
+Promises are typically implemented as a class, although the [spec](https://promisesaplus.com/) doesn't require this.
+Our promise can be in [one of three states](https://promisesaplus.com/#promise-states): pending, fulfilled, or rejected.
+We also need to store our eventual value that we have fulfilled or rejected with,
+and an array of handlers to call when the promise changes state from "PENDING" to either "FULFILLED" or "REJECTED"
+
+Putting these starting points together into a little class that can hold our state:
+```javascript
+class MyPromise {
+  // use JavaScript private variables to hold state
+  #state; // "PENDING", "FULFILLED" or "REJECTED"
+  #fulfilledValue; // the value we FULFILL or REJECT with
+  #handlers; // array of functions to call when we FULFILL or REJECT
+
+  constructor() {
+    // all promises start their life pending & with no fulfilled value
+    this.#state = "PENDING";
+    this.#fulfilledValue = undefined;
+
+    this.#handlers = [];
+  }
+}
+```
+
+## Basic usage
+Let's create a basic example function that makes use of our new promise class, so we know what to implement next.
+A simple method to double a number, with some fake asynchronous should do.
+```javascript
+function asyncDouble(number) {
+  return new MyPromise((resolve, reject) => {
+    setTimeout(() => {
+      if (number >= 1000) {
+        reject("Cannot double numbers larger than 1000");
+        return;
+      }
+
+      resolve(number * 2);
+    }, 100);
+  });
+}
+```
+
+## 'executor' function
+First thing we need is a constructor that can take an 'executor' function.
+An executor function is provided to the promise constructor as the first and only argument, it should kick off the async operation.
+This function is immediately executed by the promise, and provided 2 arguments when called:
+a 'resolve' and 'reject' function to call when the executor has completed the async operation.
+
+Amending our `MyPromise` constructor to take an executor function, call it immediately & provide our resolve & reject methods to the executor:
+```javascript
+class MyPromise {
+  ...
+
+  constructor(executor) {
+    ...
+
+    // immediately run our executor function
+    // provide it 2 functions (resolve, reject) to call when a result is ready
+    executor(
+      (value) => this.#resolveWithValue(value),
+      (rejectReason) => this.#rejectWithReason(rejectReason)
+    );
+  }
+
+  #resolveWithValue(value) {
+    // if the value we resolved with is not a promise
+    // update our local state & store the value we fulfilled with
+    this.#state = "FULFILLED";
+    this.#fulfilledValue = value;
+
+    console.log("Promise resolved with value", value);
+  }
+
+  #rejectWithReason(rejectReason) {
+    // update our local state & store the value we rejected with
+    this.#state = "REJECTED";
+    this.#fulfilledValue = rejectReason;
+
+    console.log("Promise rejected with reason", rejectReason);
+  }
+}
+```
+
+If we now try and run our async double method we can check that it
+  1. Immediately returns a `MyPromise` object
+  2. Resolves with a value (can test this via the `console.log` we added to our `#resolveWithValue(value)` method)
+
+```javascript
+const returnValue = asyncDouble(10);
+console.log(returnValue); // MyPromise {}
+```
+After 100ms we see `Promise resolved with value 20` in the console, so our async task completed successfully!
+
+## Attaching 'then handlers'
+Now that we have our foundations, it would be nice to perform some operations **after** our promise has resolved, isn't that the whole point?
+
+Our promise class should have a public `.then(onFulfilled, onRejected)` method available,
+so consumers can attach their own handlers to run when a promise resolves or rejects.
+All this method needs to do is store a new handler in our private `.#handlers` array, that we can run when a promise changes state.
+OR if the promise has already resolved when the consumer attaches a .then method, just call their handlers immediately.
+
+We also need to call these handlers in our `#resolveWithValue` and `#rejectWithReason` methods!
+
+```javascript
+class MyPromise {
+  ...
+
+  #resolveWithValue(value) {
+    // update our local state & store the value we fulfilled with
+    this.#state = "FULFILLED";
+    this.#fulfilledValue = value;
+
+    // call every handler
+    for (const handler of this.#handlers) {
+      handler();
+    }
+  }
+
+  #rejectWithReason(rejectReason) {
+    // update our local state & store the value we rejected with
+    this.#state = "REJECTED";
+    this.#fulfilledValue = rejectReason;
+
+    // call every handler
+    for (const handler of this.#handlers) {
+      handler();
+    }
+  }
+
+  then(onFulfilled, onRejected) {
+    const handleSettle = () => {
+      if (this.#state === "FULFILLED" && onFulfilled) {
+        onFulfilled(this.#fulfilledValue)
+      }
+      if (this.#state === "REJECTED" && onRejected) {
+        onRejected(this.#fulfilledValue)
+      }
+    };
+
+    // check to see if we have already resolved, or are still pending
+    // if still pending, store the handler function on our local #handlers array to be called later
+    // if already settled, immediately call handleSettle()
+    if (this.#state === "PENDING") {
+      // not settled yet, store handler so we can call once resolved
+      this.#handlers.push(handleSettle);
+    } else {
+      // already settled
+      handleSettle();
+    }
+  }
+}
+```
+
+At this point we have a basic functioning promise implementation! Let's test it
+```javascript
+const asyncDoublePromise = asyncDouble(10);
+asyncDoublePromise.then((value) => {
+  console.log("Double operation completed:", value);
+}, (error) => {
+  console.error("Double operation failed:", error);
+})
+```
+![Boom](https://media.giphy.com/media/c862b2dAhJXYA/giphy.gif)
+
+## Promises returning promises
+A core feature of promises is allowing an executor to call resolve with another promise.
+This may seem a little odd, however it allows async tasks to call other async tasks, and will make some chaining easier to implement next.
+
+```javascript
+function asyncAddOneAndDouble(number) {
+  return new MyPromise((resolve, reject) => {
+    setTimeout(() => {
+      number = number + 1;
+
+      // resolve with a promise to perform a second task
+      resolve(asyncDouble(number));
+    }, 100);
+  });
+}
+
+// this should resolve with the final result of 22
+asyncAddOneAndDouble(10).then((result) =>
+  console.log("Complete:", result)
+);
+```
+
+To handle this, we will need to check if the executor called `resolve()` with a promise, rather than a value,
+then further wait for that promise to resolve before fulfilling.
+Getting a little complicated, but nothing we can't handle.
+
+If the sub-promise resolves: resolve ourselves with the result.
+If ths sub-promise rejects: reject ourselves with the reject reason.
+
+```javascript
+class MyPromise {
+  ...
+
+  #resolveWithValue(value) {
+    // check if the value we have 'resolved' with is a promise
+    // if so, don't fulfill with this value, instead, wait for it to resolve
+    // then try again to resolve with the value of this sub promise
+    if (value instanceof MyPromise) {
+      // attach a 'then' handler to this promise that we were resolved with
+      // once it returns, call resolve/reject again with the value it fulfills to
+      value.then.call(value,
+        (result) => {
+          this.#resolveWithValue(result);
+        },
+        (rejectReason) => {
+          this.#rejectWithReason(rejectReason);
+        },
+      );
+      return;
+    }
+
+    // if the value we resolved with is not a promise
+    // update our local state & store the value we fulfilled with
+    this.#state = "FULFILLED";
+    this.#fulfilledValue = value;
+
+    // call every handler, to call .then handlers & resolve .then sub promises
+    for (const handler of this.#handlers) {
+      handler();
+    }
+  }
+
+  ...
+}
+```
+
+## Chaining promises together
+We almost have all the pieces together now, however we want the ability to chain our promises together.
+```javascript
+asyncDouble(5) // 5 -> 10
+  .then(asyncDouble) // 10 -> 20
+  .then(asyncDouble) // 20 -> 40
+  .then(asyncDouble) // 40 -> 80
+  .then(result => console.log(result)); // log "80"
+```
+
+Using this code with our current implementation throws an error!:
+```
+TypeError: Cannot read property 'then' of undefined
+```
+![Boo](https://media.giphy.com/media/xNRBrdEaYym76/giphy.gif)
+
+Our `.then()` function doesn't return anything! So when we try to call .then() on the return value of .then() we get an error.
+To make this code work, our `.then()` function needs to return a _new_ promise. One that resolves once our onResolved handler completes.
+
+Or, in code:
+```javascript
+const prom1 = asyncDouble(5);
+const prom2 = prom1.then((val) => { // prom 2 will resolve once this 'then handler' has completed (including resolving any promise it may return)
+  console.log("First promise completed");
+  return asyncDouble(val); // return another promise to complete
+});
+prom2.then((val) => {
+  console.log("Second promise completed");
+});
+```
+
+To implement this, let's wrap our 'then' function in a promise constructor/executor.
+When our handler is called, we need to check if we have an appropriate onResolve/onReject handler and call it,
+then resolve our sub-promise with the return value of the handler to keep our chain going.
+
+There are a few edge cases here:
+  1. If we have no onResolve/onReject handler, resolve/reject our sub-promise immediately to pass the value down the chain.
+  2. If we reject, and have a reject handler that executes successfully - the rejection has been 'handled' so resolve the sub promise with the output of the rejection handler
+  3. If we reject, and we have **no** reject handler, reject the sub-promise, to ensure the rejection is propagated down (and hopefully eventually handled)
+
+Our final `.then` method, with support for chaining promises:
+```javascript
+class MyPromise {
+  ...
+
+  then(onFulfilled, onRejected) {
+    // calling .then always returns a new promise
+    // this allows us to chain promises together
+    // e.g.
+    // fetchData()
+    //   .then(parseData)
+    //   .then(storeData)
+    //   .then(notifyUser)
+
+    return new MyPromise((resolve, reject) => {
+      // we only have one function here for handling both fulfillment & rejection
+      // check what state the promise is in when this gets called, and call the appropriate handler function
+      // once the handler function has returned,
+      // resolve our .then promise with the return value of our handler function
+      // if the handler function isn't provided or callable,
+      // just resolve our .then promise without calling any handler
+      const handleSettle = () => {
+        if (this.#state === "FULFILLED") {
+          if (onFulfilled) {
+            // we have a handler function for this!
+            // call it, then resolve with it's return value
+            // e.g.
+            // doThing() <-- doThing() just resolved
+            //   .then(storeResult) <-- call storeResult when doThing state === "FULFILLED" (you are here)
+            //   .then(notifyUser) <-- another .then handler is attached to the promise returned by .then(storeResult)
+            resolve(onFulfilled(this.#fulfilledValue));
+          } else {
+            resolve(this.#fulfilledValue);
+          }
+        } else { // rejected
+          if (onRejected) {
+            resolve(onRejected(this.#fulfilledValue));
+          } else {
+            reject(this.#fulfilledValue);
+          }
+        }
+      };
+
+      // check to see if we have already resolved, or are still pending
+      // if still pending, store the handler function on our local #handlers array to be called later
+      // if already settled, immediately call handleSettle()
+      if (this.#state === "PENDING") {
+        // not settled yet, store handler so we can call once resolved
+        this.#handlers.push(handleSettle);
+      } else {
+        // already settled
+        handleSettle();
+      }
+    });
+  }
+
+  ...
+}
+```
+
+## Convenience methods
+If you've made it this far, well done! That's it for the hairy parts. Let's just add some convenience methods to making using our promise class a little nicer.
+
+### .catch()
+`.catch()` is simply a wrapper around `.then()`, it allows attaching a handler specifically for rejections only.
+
+### .finally()
+`.finally()` is also a wrapper around `.then()`, it allows attaching a handler to run on either fulfillment or rejection of a promise.
+
+```javascript
+class MyPromise {
+  ...
+
+  // convenience method, attach reject handler
+  catch(onRejected) {
+    this.then(undefined, onRejected);
+  }
+
+  // convenience method, handler to run either resolve or reject
+  finally(onFinally) {
+    this.then(onFinally, onFinally);
+  }
+
+  ...
+}
+```
+
+## Putting it all together
+We have our final class! It's not perfectly compliant to the spec yet, but for most use cases the difference won't be noticeable.
+
+```javascript
+class MyPromise {
+    // use JavaScript private variables to hold state
+    #state; // "PENDING", "FULFILLED" or "REJECTED"
+    #fulfilledValue; // the value we FULFILL or REJECT with
+    #handlers; // array of functions to call when we FULFILL or REJECT
+
+    constructor(executor) {
+        // all promises start their life pending & with no fulfilled value
+        this.#state = "PENDING";
+        this.#fulfilledValue = undefined;
+
+        this.#handlers = [];
+
+        // immediately run our executor function
+        // provide it 2 functions (resolve, reject) to call when a result is ready
+        executor(
+            (value) => this.#resolveWithValue(value),
+            (rejectReason) => this.#rejectWithReason(rejectReason)
+        );
+    }
+
+    #resolveWithValue(value) {
+        // check if the value we have 'resolved' with is a promise
+        // if so, don't fulfill with this value, instead, wait for it to resolve
+        // then try again to resolve with the value of this sub promise
+        if (value instanceof MyPromise) {
+            // attach a 'then' handler to this promise that we were resolved with
+            // once it returns, call resolve/reject again with the value it fulfills to
+            value.then.call(value,
+                (result) => {
+                    this.#resolveWithValue(result);
+                },
+                (rejectReason) => {
+                    this.#rejectWithReason(rejectReason);
+                },
+            );
+            return;
+        }
+
+        // if the value we resolved with is not a promise
+        // update our local state & store the value we fulfilled with
+        this.#state = "FULFILLED";
+        this.#fulfilledValue = value;
+
+        // call every handler, to call .then handlers & resolve .then sub promises
+        for (const handler of this.#handlers) {
+            handler();
+        }
+    }
+
+    #rejectWithReason(rejectReason) {
+        // update our local state & store the value we rejected with
+        this.#state = "REJECTED";
+        this.#fulfilledValue = rejectReason;
+
+        // call every handler, to call .then handlers & resolve .then sub promises
+        for (const handler of this.#handlers) {
+            handler();
+        }
+    }
+
+    then(onFulfilled, onRejected) {
+        // calling .then always returns a new promise
+        // this allows us to chain promises together
+        // e.g.
+        // fetchData()
+        //   .then(parseData)
+        //   .then(storeData)
+        //   .then(notifyUser)
+
+        return new MyPromise((resolve, reject) => {
+            // we only have one function here for handling both fulfillment & rejection
+            // check what state the promise is in when this gets called, and call the appropriate handler function
+            // once the handler function has returned,
+            // resolve our .then promise with the return value of our handler function
+            // if the handler function isn't provided or callable,
+            // just resolve our .then promise without calling any handler
+            const handleSettle = () => {
+                if (this.#state === "FULFILLED") {
+                    if (onFulfilled) {
+                        // we have a handler function for this!
+                        // call it, then resolve with it's return value
+                        // e.g.
+                        // doThing() <-- doThing() just resolved
+                        //   .then(storeResult) <-- call storeResult when doThing state === "FULFILLED" (you are here)
+                        //   .then(notifyUser) <-- another .then handler is attached to the promise returned by .then(storeResult)
+                        resolve(onFulfilled(this.#fulfilledValue));
+                    } else {
+                        resolve(this.#fulfilledValue);
+                    }
+                } else { // rejected
+                    if (onRejected) {
+                        resolve(onRejected(this.#fulfilledValue));
+                    } else {
+                        reject(this.#fulfilledValue);
+                    }
+                }
+            };
+
+            // check to see if we have already resolved, or are still pending
+            // if still pending, store the handler function on our local #handlers array to be called later
+            // if already settled, immediately call handleSettle()
+            if (this.#state === "PENDING") {
+                // not settled yet, store handler so we can call once resolved
+                this.#handlers.push(handleSettle);
+            } else {
+                // already settled
+                handleSettle();
+            }
+        });
+    }
+
+    // convenience method, attach reject handler
+    catch(onRejected) {
+        this.then(undefined, onRejected);
+    }
+
+    // convenience method, handler to run either resolve or reject
+    finally(onFinally) {
+        this.then(onFinally, onFinally);
+    }
+}
+```
+
+Now lets see if we can tweak this implementation to become 100% [A+ specification compliant](https://promisesaplus.com/)

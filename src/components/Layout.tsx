@@ -1,4 +1,5 @@
 import * as React from "react";
+import "./Layout.scss";
 import { Link } from "gatsby";
 import { Seo } from "./Seo";
 
@@ -9,7 +10,7 @@ export type Props = {
 
 export const Layout: React.FC<Props> = ({ description, title, children }) => {
   return (
-    <div className="global-wrapper">
+    <div className="component-Layout">
       <Seo title={title} description={description} />
       <Link className="header-link-home" to="/">
         jyelewis.com
