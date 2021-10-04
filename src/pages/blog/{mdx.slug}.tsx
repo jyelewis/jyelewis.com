@@ -1,7 +1,7 @@
 import * as React from "react";
 import { graphql } from "gatsby";
 import { MDXRenderer } from "gatsby-plugin-mdx";
-import { Layout } from "../../components/layout";
+import { Layout } from "../../components/Layout";
 
 const BlogPost: React.FC<any> = ({ data }) => {
   const date = data.mdx.slug.split("/")[0];
