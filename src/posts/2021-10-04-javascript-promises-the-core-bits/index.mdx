@@ -40,7 +40,7 @@ class MyPromise {
 
 ## Basic usage
 Let's create a basic example function that makes use of our new promise class, so we know what to implement next.
-A simple method to double a number, with some fake asynchronous should do.
+A simple method to double a number, with some fake asynchronous operations should do.
 ```javascript
 function asyncDouble(number) {
   return new MyPromise((resolve, reject) => {
@@ -58,7 +58,7 @@ function asyncDouble(number) {
 
 ## 'executor' function
 First thing we need is a constructor that can take an 'executor' function.
-An executor function is provided to the promise constructor as the first and only argument, it should kick off the async operation.
+An executor function is provided to the promise constructor as the first and only argument; it should kick off the async operation.
 This function is immediately executed by the promise, and provided 2 arguments when called:
 a 'resolve' and 'reject' function to call when the executor has completed the async operation.
 
@@ -205,7 +205,7 @@ then further wait for that promise to resolve before fulfilling.
 Getting a little complicated, but nothing we can't handle.
 
 If the sub-promise resolves: resolve ourselves with the result.
-If ths sub-promise rejects: reject ourselves with the reject reason.
+If the sub-promise rejects: reject ourselves with the reject reason.
 
 ```javascript
 class MyPromise {

@@ -23,10 +23,10 @@ req.send();
 What is going on? Why is JS this so different in approach to other languages!?
 
 ## JS origins
-JavaScript has evolved from a language designed to add small amounts of interactivity to a webpage.
+JavaScript has evolved from a language designed to add small amounts of interactivity to a web page.
 In this basic form, code must 'block' the web browsers rendering while executing:
 If a user clicks a button, we must execute our button handling code before we allow them to interact anymore with the page.
-This makes implementing webpage interactivity simple, but presents a problem for long-running tasks, such as making API requests.
+This makes implementing web page interactivity simple, but presents a problem for long-running tasks, such as making API requests.
 
 In our previous Python code, our execution 'pauses' while we wait for our API to respond to our request. This makes the code very easy to read and write.
 If our Javascript did the same thing, our entire web page would freeze up!
@@ -118,7 +118,7 @@ This callback pattern doesn't make use of return values, and instead we must pro
 Promises take us back to more familiar patterns: a function can be called with relevant arguments, and it will return a value.
 However, async functions still cannot block execution. The program must continue running, even if the return value isn't ready yet.
 
-To work around this problem, async functions can return a 'promise' which will in the future, contain the return value of the operation.
+To work around this problem, async functions can return a 'promise' which will, in the future, contain the return value of the operation.
 This allows async functions to return _something_ immediately, even if they are still waiting on, for example, an API call to complete.
 
 Promises are an object, with 3 states: pending, fulfilled and rejected. Typically, an async operation will return a promise in the 'pending' state.
