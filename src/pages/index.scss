@@ -1,0 +1,36 @@
+
+.page-index {
+  .about-me {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 30px 0 10px 0;
+    img {
+      float: right;
+    }
+  }
+
+  article {
+    clear: both;
+
+    margin: 20px 0;
+    a {
+      display: block;
+      padding: 5px 15px;
+      text-decoration: none;
+    }
+
+    .title {
+      float: left;
+      margin: 0;
+    }
+    .date {
+      float: right;
+      margin: 0;
+      margin-top: 5px;
+    }
+    .description {
+      clear: both;
+      margin: 0;
+    }
+  }
+}

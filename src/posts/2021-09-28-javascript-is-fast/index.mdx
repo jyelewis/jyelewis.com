@@ -1,6 +1,6 @@
 ---
 title: "We've been lied to: JavaScript is very fast"
-description: "Hello World"
+description: "JavaScript has been carrying a stigma of being 'slow' for many years now, is that true in 2021?"
 ---
 
 ## The stigma
@@ -28,7 +28,7 @@ To test the speed of modern engines, I wrote a small synthetic benchmark in C, t
 _Disclaimer: This benchmark does not represent real world usage, a small loop performing simple operations is giving JS engines the best change possible to optimise the speed of this code._
 
 ### C code:
-```
+```c
 #define ITERATIONS 1000000000
 
 int main() {
@@ -44,7 +44,6 @@ int main() {
 
 ### JavaScript code:
 ```javascript
-
 const ITERATIONS = 1000000000;
 
 function main() {
@@ -58,6 +57,7 @@ function main() {
 
 ### Results
 I ran this code on my 2020 M1 Macbook Pro.
+
 | Language | Environment   | Million iterations/s (larger is better) |
 |:--------:|---------------|-----------------------------------------|
 | C        | clang 13.0.0  | 1000                                    |

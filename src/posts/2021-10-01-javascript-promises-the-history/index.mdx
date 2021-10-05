@@ -1,6 +1,6 @@
 ---
-title: "JavaScript promises: The core bits"
-description: "Hello World"
+title: "JavaScript promises: The history"
+description: "Why are asynchronous operations in JavaScript so complicated? Let's take a look at the history of promises."
 ---
 
 It doesn't take long working with JavaScript before the big bad wolf of asynchronous operations comes out to play.
@@ -60,6 +60,7 @@ For example, we may want to
 Each step here requires the previous to have completed. JavaScript traditionally has used callbacks,
 allowing the developer to provide a function to call once an async operation has completed.
 
+#### Basic callbacks
 ```js
 function onFetchDataComplete(error, data) {
     if (error) {
@@ -73,7 +74,7 @@ fetchData(onFetchDataComplete);
 ```
 
 Using this callback pattern for our larger workflow, things start to become a little complex.
-
+#### Callback hell in action
 ```js
 fetchData((fetchDataError, data) => {
     if (fetchDataError) {
@@ -125,7 +126,7 @@ This indicates that an operation is still in progress, but a value will be avail
 'Then handlers' can be attached to this promise in order to perform some task once the promise 'resolves' to the 'fulfilled' state.
 When this 'then handler' is called, the value the promise resolved with will be provided as the first argument to the handler function.
 
-Re-writing our [first example](#small-callback-workflow) of fetching data using promises:
+Re-writing our [first example](#basic-callbacks) of fetching data using promises:
 ```js
 const fetchDataPromise = fetchData();
 fetchDataPromise
@@ -134,8 +135,7 @@ fetchDataPromise
 ```
 
 This is more concise than our earlier example using callbacks, but not significantly better.
-The value of promises starts to really show when chaining many async operations together, as we did in [here](#large-callback-workflow)
-<a id="large-promise-workflow"></a>
+The value of promises starts to really show when chaining many async operations together, as we did in [here](#callback-hell-in-action)
 ```js
 fetchData()
     .then(parseData)
@@ -163,7 +163,7 @@ There is another interesting line in the two examples above: `.catch()`.
 This attaches a handler to run if a promise 'rejects', that is fails to complete its async operation.
 If a promise rejects, and sub promises returned by `.then()` handlers will also reject.
 This allows us to attach only a single error handler at the bottom of our promise chain,
-rather than handling errors at every stage in our async process like we did in the [callback workflow](#large-callback-workflow)
+rather than handling errors at every stage in our async process like we did in the [callback workflow](#callback-hell-in-action)
 
 ## async/await
 In the modern JS environment we can take promises a step further with async functions.
@@ -180,9 +180,9 @@ async function runWorkflow() {
 }
 ```
 
-This final code is much easier to read, write, and maintain. Certainly much simpler than our original [callback workflow](#large-callback-workflow)!
+This final code is much easier to read, write, and maintain. Certainly much simpler than our original [callback workflow](#callback-hell-in-action)!
 
 It's important to note that this async/await syntax is still using promises under the hood.
 In fact our `runWorkflow()` is implicitly returning a promise that will resolve when the workflow completes, or reject if it fails.
 
-Now that you know the what and why of promises, let's look at [the core bits](#) of a promise implementation!
+Now that you know the what and why of promises, let's look at [the core bits](/blog/2021-10-04-javascript-promises-the-core-bits) of a promise implementation!

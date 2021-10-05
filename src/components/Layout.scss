@@ -3,4 +3,22 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
+  background-color: rgba(0, 0, 0, 0.3);
+
+  header {
+    text-align: right;
+    a {
+      font-size: 25px;
+      color: #fff;
+      //text-decoration: none;
+    }
+  }
+
+  footer {
+    padding-top: 30px;
+    text-align: center;
+    a {
+      margin: 5px 10px;
+    }
+  }
 }

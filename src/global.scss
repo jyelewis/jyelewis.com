@@ -5,26 +5,63 @@
 body {
   font-family: "Open Sans",'Helvetica Neue',Helvetica,Arial,sans-serif;
 
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.8;
 
-  background-color: #222;
+  background-color: #333;
   color: #fff;
-  padding: 20px;
 
   background-image: url('https://www.transparenttextures.com/patterns/axiom-pattern.png');
   //background-image: url('https://www.transparenttextures.com/patterns/3px-tile.png');
   background-attachment: fixed;
 }
 
+code[class*="language-"], pre[class*="language-"] {
+  font-size: 14px !important;
+}
+
+pre[class*="language-"] {
+  border-radius: 0 !important;
+  border: 1px solid hsl(0, 0%, 33%) !important;
+  box-shadow: none !important;
+}
+
 a {
-  color: #bbb;
+  color: #fff;
+  background-color: #555;
+  padding: 0 5px;
+  display: inline-block;
+
+  &:hover {
+    background-color: #444;
+    text-decoration: underline;
+  }
 }
 
 a.anchor {
   margin-right: 10px;
   svg path {
     fill: #fff;
+  }
+}
+
+img, .ff-container {
+  display: block !important;
+  margin: 0 auto;
+  max-width: 500px;
+}
+
+.ff-container {
+  display: block !important;
+  margin: 0 auto;
+  max-width: 500px;
+  img {
+    margin: 0;
+    max-width: none;
+    width: 100%;
+  }
+  canvas {
+    width: 100%;
   }
 }
 
@@ -39,3 +76,18 @@ h2 {
 h3 {
 
 }
+
+blockquote {
+  border-left: 8px solid #ccc;
+  margin-left: 15px;
+  padding-left: 15px;
+}
+
+table {
+  border-collapse: collapse;
+  td, th {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0 10px;
+  }
+}
+
