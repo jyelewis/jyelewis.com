@@ -12,7 +12,7 @@ const ReactFreezeframeLazy = React.lazy(() => import("react-freezeframe"));
 
 const CustomLink: React.FC<any> = (props) => {
   if (props.href.startsWith("http")) {
-    return <OutboundLink {...props} target="_blank" />;
+    return <OutboundLink {...props} target="_blank" rel="noreferrer" />;
   }
 
   return <Link {...props} to={props.href} />;
