@@ -5,14 +5,15 @@ description: "JavaScript has been carrying a stigma of being 'slow' for many yea
 
 ## The stigma
 JavaScript has been carrying a stigma of being 'slow' for many years now.
-Early implementations **were** slow (particularly in the Internet Explorer era). Google Chrome, having been a powerhouse of performance upon release in 2008, has dramatically increased its performance again over the last 13 years [Celebrating 10 years of V8](https://v8.dev/blog/10-years).
+Early implementations **were** slow (particularly in the Internet Explorer era). Google Chrome, having been a powerhouse of performance upon release in 2008,
+has dramatically increased its performance again over the last 13 years. See [Celebrating 10 years of V8](https://v8.dev/blog/10-years) for some pretty graphs.
 
-The nature of JS having evolved from adding small sprinkles of interactivity to webpages has exacerbated this issue by labeling it a 'toy' language to many.
+The nature of JS having evolved from adding small sprinkles of interactivity to web pages has exacerbated this issue, labeling it a 'toy' language to many.
 
 Another term thrown around when discussing performance is that it is a 'single threaded' language. This is somewhat of a meaningless statement... as most languages (PHP, C#, Java, C) are 'single threaded' unless the developer explicitly implements support for multi-threading.
 I believe this sentiment has come from 2 places:
 
-1. Code running in the browser runs on the 'main' thread by default and will therefore cause irritating browser freezes and stuttering if the webpage is trying to do anything CPU intensive. This is because as long as JS code is running, the browser cannot update the screen.
+1. Code running in the browser runs on the 'main' thread by default and will therefore cause irritating browser freezes and stuttering if the webpage is trying to do anything CPU intensive. As long as JS code is running, the browser cannot update the screen.
 2. Node.js took a slightly different approach to serving web content than existing technologies at the time did (PHP, ASP, JSP). Rather than forking for every incoming request, or using a pool of processes, node typically uses a single process. This process then calls a 'handler' function every time a web request comes in. This design allows extremely fast responses, and low overhead per-request. However, because there is ultimately only a single process running, if the handler function performs significant CPU work, this process is 'held up' from serving any other requests until the first request is complete.
 
 Both of these problems can be easily overcome with well planned code. Both browsers & Node.js provide mechanisms for offloading heavy tasks to background threads, preventing the main thread from blocking.
@@ -111,7 +112,7 @@ function findSmallestPositiveValue(numbers) {
 ```
 Personally, I'd prefer to read & maintain the second version.
 
-Technically, this function wastes CPU and memory by copying the array, and sorting every value even thought we only care about finding the smallest value. The first function is 'less work' for the computer to perform. However, with fast engines we can trust them to optimise our code to be fast anyway. Even if the second function takes twice as long as the first, we are in the realm of nanoseconds.
+Technically, this function wastes CPU and memory by copying the array, and sorting every value even though we only care about finding the smallest value. The first function is 'less work' for the computer to perform. However, with fast engines we can trust them to optimise our code to be fast anyway. Even if the second function takes twice as long as the first, we are in the realm of nanoseconds.
 
 ### Less developer/stack overflow disagreements over performance
 Because it doesn't matter! Why waste time debating the performance benefits of `for` over `.forEach()` if the difference is 2ns. Why bother replacing `delete user.password;` with `user.password = undefined;` if a benchmark looping the two methods 1 billion times is required to show any discernible difference between the two. Write the code that makes the most sense to write, not the code that benchmarks the quickest.
