@@ -4,7 +4,6 @@ import { graphql, Link } from "gatsby";
 import { MDXRenderer } from "gatsby-plugin-mdx";
 import { Layout } from "../../components/Layout";
 import { dateFromSlug } from "../../utilities/dateFromSlug";
-import { OutboundLink } from "gatsby-plugin-google-analytics";
 import { MDXProvider } from "@mdx-js/react";
 
 const isSSR = typeof window === "undefined";
@@ -12,7 +11,7 @@ const ReactFreezeframeLazy = React.lazy(() => import("react-freezeframe"));
 
 const CustomLink: React.FC<any> = (props) => {
   if (props.href.startsWith("http")) {
-    return <OutboundLink {...props} target="_blank" rel="noreferrer" />;
+    return <Link {...props} to={props.href} target="_blank" rel="noreferrer" />;
   }
 
   return <Link {...props} to={props.href} />;

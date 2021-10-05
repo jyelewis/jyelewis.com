@@ -28,7 +28,7 @@ pre[class*="language-"] {
 
 a {
   color: #fff;
-  background-color: #555;
+  background-color: #333;
   padding: 0 5px;
   display: inline-block;
 
@@ -43,6 +43,7 @@ a.anchor {
   svg path {
     fill: #fff;
   }
+  background-color: transparent;
 }
 
 img, .ff-container {
