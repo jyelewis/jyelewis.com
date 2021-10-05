@@ -1,17 +1,11 @@
 module.exports = {
   siteMetadata: {
-    siteUrl: "https://www.jyelewis.com",
+    siteUrl: "https://jyelewis.com",
     title: "jyelewis.com",
   },
   plugins: [
     "gatsby-plugin-sass",
     "gatsby-plugin-image",
-    {
-      resolve: "gatsby-plugin-google-analytics",
-      options: {
-        trackingId: "G-J24D0FBN5X",
-      },
-    },
     "gatsby-plugin-react-helmet",
     "gatsby-plugin-sitemap",
     {
