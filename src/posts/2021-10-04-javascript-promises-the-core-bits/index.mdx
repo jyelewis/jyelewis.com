@@ -285,7 +285,7 @@ There are a few edge cases here:
   3. If we reject, and we have **no** reject handler, reject the sub-promise, to ensure the rejection is propagated down (and hopefully eventually handled)
 
 Our final `.then` method, with support for chaining promises:
-```javascript
+```js
 class MyPromise {
   ...
 
@@ -353,7 +353,7 @@ If you've made it this far, well done! That's it for the hairy parts. Let's just
 ### .finally()
 `.finally()` is also a wrapper around `.then()`, it allows attaching a handler to run on either fulfillment or rejection of a promise.
 
-```javascript
+```js
 class MyPromise {
   ...
 
@@ -374,7 +374,7 @@ class MyPromise {
 ## Putting it all together
 We have our final class! It's not perfectly compliant to the spec yet, but for most use cases the difference won't be noticeable.
 
-```javascript
+```js
 class MyPromise {
     // use JavaScript private variables to hold state
     #state; // "PENDING", "FULFILLED" or "REJECTED"
@@ -499,4 +499,4 @@ class MyPromise {
 }
 ```
 
-Now lets see if we can tweak this implementation to become 100% [A+ specification compliant](https://promisesaplus.com/)
+Now lets see if we can [tweak this implementation](/blog/2021-10-07-javascript-promises-the-weird-bits/) to become 100% [A+ specification compliant](https://promisesaplus.com/)
