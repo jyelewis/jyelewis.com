@@ -250,7 +250,7 @@ We should be treating any 'thenable' object as a promise, rather than just insta
 This means you could technically chain promises from different implementations...
 although for the sanity of your fellow developers please don't do that.
 
-This contains many edge cases, what if .then is actually a getter on our object, and triggering that getter crashes!?
+This contains many edge cases, what if .then is actually a getter on our object, and triggering that getter crashes?!
 Weirdly the spec also requires that the '.then' property is only fetched once.
 I'm not sure what the purpose of this is, but I guess it again removes any possible variance between implementations.
 
@@ -300,7 +300,7 @@ class MyPromise {
 ```
 
 ## thenables resolving/rejecting multiple times...
-Argg, we've re-introduced a problem that we fixed [earlier](resolve-rejecting-multiple-times)!
+Argg, we've re-introduced a problem that we fixed [earlier](#resolvingrejecting-multiple-times)!
 If our sub promise resolves, then throws we will reject while we are in the process of resolving (possibly waiting for a sub promise to resolve).
 Let's add a flag to deal with that edge case:
 
