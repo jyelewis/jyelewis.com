@@ -27,7 +27,8 @@ export const Index: React.FC<any> = ({ data }) => {
             <Link to={`/blog/${node.slug}`}>
               <h2 className="title">{node.frontmatter.title}</h2>
               <p className="date">
-                {node.timeToRead} min read. {dateFromSlug(node.slug)}
+                {node.frontmatter.timeToRead || node.timeToRead} min read.{" "}
+                {dateFromSlug(node.slug)}
               </p>
               <p className="description">{node.frontmatter.description}</p>
             </Link>
@@ -47,6 +48,7 @@ export const query = graphql`
         frontmatter {
           title
           description
+          timeToRead
         }
         id
         slug

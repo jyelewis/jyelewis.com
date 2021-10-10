@@ -51,12 +51,17 @@ const BlogPost: React.FC<any> = ({ data }) => {
       <article className="component-BlogPost">
         <h1 className="post-title">{data.mdx.frontmatter.title}</h1>
         <p className="post-date">
-          {data.mdx.timeToRead} min read. {dateFromSlug(data.mdx.slug)}
+          {data.mdx.frontmatter.timeToRead || data.mdx.timeToRead} min read.{" "}
+          {dateFromSlug(data.mdx.slug)}
         </p>
         <div className="post-content">
           <MDXProvider components={customMdxComponents}>
             <MDXRenderer>{data.mdx.body}</MDXRenderer>
           </MDXProvider>
+        </div>
+
+        <div className="read-more-posts">
+          <Link to="/">Read more posts</Link>
         </div>
       </article>
     </Layout>
@@ -69,6 +74,7 @@ export const query = graphql`
       frontmatter {
         title
         description
+        timeToRead
       }
       slug
       body
