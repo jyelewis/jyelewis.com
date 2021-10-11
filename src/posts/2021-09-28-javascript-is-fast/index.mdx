@@ -107,7 +107,7 @@ Can comfortably be re-written as
 function findSmallestPositiveValue(numbers) {
     return numbers
         .filter(x => x > 0) // remove negative values
-        .sort()[0];  // sort from smallest to largest, and return first value
+        .sort((a, b) => a-b)[0];  // sort from smallest to largest, and return first value
 }
 ```
 Personally, I'd prefer to read & maintain the second version.
