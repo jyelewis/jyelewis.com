@@ -1,0 +1,98 @@
+---
+title: "JavaScript promises: The static bits"
+description: "Adding static methods to our promise implementation"
+timeToRead: 3
+---
+
+Now that we have an [A+ spec compliant promise implementation](/blog/2021-10-07-javascript-promises-the-weird-bits/)
+lets finish the job by adding the static methods typical implementations provide:
+
+`MyPromise.resolve(value)`: Returns a resolved promise with "value".
+
+`MyPromise.reject(value)`: Returns a rejected promise with "value".
+
+`MyPromise.all(promises)`: Waits for all promises in provided array to resolve, resolves with array of all resolves values.
+
+`MyPromise.race(promises)`: Waits for the first promise to resolve/reject and resolve/rejects with that value.
+
+_There are a few more static methods: `.allSetted()` and `.any()`, however I have never seen them used in the wild, so I am leaving them out._
+
+## MyPromise.resolve(value), MyPromise.reject(value)
+Starting simple with .resolve & .reject.
+We can construct new promises with a custom executor function that immediately resolves/rejects.
+```js
+class MyPromise {
+  ...
+
+  static resolve(value) {
+    // immediately resolve our promise with 'value'
+    return new MyPromise((resolve) => resolve(value));
+  }
+
+  static reject(value) {
+    // immediately reject our promise with 'value'
+    return new MyPromise((resolve, reject) => reject(value));
+  }
+}
+```
+
+## MyPromise.all(promises)
+In my experience, this is the most commonly used static method.
+Taking an array of promises, it will return a new promise that resolves once *all* given promises have resolved.
+If any promises reject, the returned promise rejects.
+If all promises resolve, this promise will resolve with an array containing the resolved values of all given promises.
+
+```js
+class MyPromise {
+  ...
+
+  static all(promises) {
+    return new MyPromise((resolve, reject) => {
+      // keep track of all our return values
+      const resolvedValues = [];
+      let numPromisesResolved = 0;
+
+      // attach a listener to all of our promises so we can store their return value
+      // and check if all our promises have resolved
+      // if any reject, reject our main promise
+      promises.forEach((promise, index) => {
+        promise.then(value => {
+          // store away our return value for later
+          resolvedValues[index] = value;
+          // keep track of how many promises have resolved so we know when all are complete
+          numPromisesResolved++;
+
+          // check if this was the last promise to resolve
+          if (numPromisesResolved === promises.length) {
+            // all promises have resolved!
+            resolve(resolvedValues);
+          }
+        });
+
+        // ensure errors are captured
+        promise.catch(reject);
+      });
+    });
+  }
+}
+```
+
+## MyPromise.race(promises)
+Similar to `.all(promises)` in that an array of promises is taken, `.race(promises)` watches all promises within an array.
+Once *any* promise resolves or rejects, resolve or reject our main promise.
+```js
+class MyPromise {
+  ...
+
+  static race(promises) {
+    return new MyPromise((resolve, reject) => {
+      // attach *our* resolve and reject handlers to every promise given
+      // promises can only resolve/reject once,
+      // so which ever promise settles first will also settle our return promise
+      promises.forEach(promise =>
+        promise.then(resolve, reject)
+      );
+    });
+  }
+}
+```
