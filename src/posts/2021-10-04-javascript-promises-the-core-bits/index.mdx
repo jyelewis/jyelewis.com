@@ -177,7 +177,7 @@ asyncDoublePromise.then((value) => {
   console.error("Double operation failed:", error);
 })
 ```
-![Boom](https://media.giphy.com/media/c862b2dAhJXYA/giphy.gif)
+![Boom](boom.webp)
 
 ## Promises returning promises
 A core feature of promises is allowing an executor to call resolve with another promise.
@@ -259,7 +259,7 @@ Using this code with our current implementation throws an error!:
 ```
 TypeError: Cannot read property 'then' of undefined
 ```
-![Boo](https://media.giphy.com/media/xNRBrdEaYym76/giphy.gif)
+![Boo](boo.webp)
 
 Our `.then()` function doesn't return anything! So when we try to call .then() on the return value of .then() we get an error.
 To make this code work, our `.then()` function needs to return a _new_ promise. One that resolves once our onResolved handler completes.
