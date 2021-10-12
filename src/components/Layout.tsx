@@ -30,6 +30,7 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
             to="mailto:jye@jyelewis.com"
             title="jye@jyelewis.com"
             target="_blank"
+            rel="noopener"
           >
             email
           </Link>
@@ -37,6 +38,7 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
             to="https://twitter.com/jyelew15"
             title="twitter: @jyelew15"
             target="_blank"
+            rel="noopener"
           >
             twitter
           </Link>
@@ -44,6 +46,7 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
             to="https://github.com/jyelewis"
             title="github: @jyelewis"
             target="_blank"
+            rel="noopener"
           >
             github
           </Link>
@@ -51,6 +54,7 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
             to="https://www.linkedin.com/in/jye-lewis-680ab6120/"
             title="LinkedIn: Jye Lewis"
             target="_blank"
+            rel="noopener"
           >
             linkedin
           </Link>
