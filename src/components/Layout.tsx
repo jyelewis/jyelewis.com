@@ -20,7 +20,7 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
       <main>{children}</main>
       <footer>
         <div className="copyright">
-          &copy; {new Date().getFullYear()} Jye Lewis
+          &copy; 2021-{new Date().getFullYear()} Jye Lewis
         </div>
         <div className="socials">
           <Link to="/" title="Blog home">
