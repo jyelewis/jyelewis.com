@@ -43,6 +43,14 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
             twitter
           </Link>
           <Link
+            to="https://fosstodon.org/@jyelewis"
+            title="mastodon: @jyelewis@fosstodon.org"
+            target="_blank"
+            rel="me"
+          >
+            mastodon
+          </Link>
+          <Link
             to="https://github.com/jyelewis"
             title="github: @jyelewis"
             target="_blank"
