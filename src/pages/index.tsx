@@ -10,12 +10,7 @@ export const Index: React.FC<any> = ({ data }) => {
     <Layout title="Posts" description="">
       <div className="page-index">
         <div className="about-me">
-          <img
-            src={profileImage}
-            alt="Jye Lewis Profile Image"
-            width={150}
-            height={150}
-          />
+          <img src={profileImage} alt="Jye Lewis Profile Image" height={150} />
           I&apos;m a software engineer working primarily on the web. My ultimate
           goal as a developer is to improve my ability to explain a complex
           subject in accessible terms.
