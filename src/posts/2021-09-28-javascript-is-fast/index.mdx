@@ -72,7 +72,7 @@ Obviously the C code here is the fastest, and when compiled as a production buil
 What's interesting here is that C and JavaScript are within the same order of magnitude in iterations per second. Clearly modern JS isn't the sloth of a dynamically typed interpreted language, crawling down the lines of code as we have been told it is.
 I also find it interesting just how close the different JS engines are in performance. I suspect given the simplicity of the code all 3 engines tested here ([JavaScriptCore](https://developer.apple.com/documentation/javascriptcore), [V8](https://v8.dev/), and [SpiderMonkey](https://spidermonkey.dev/)) are JIT compiling this code to a very similar list of CPU instructions.
 
-![Drag race](drag-race.webp)
+![Drag race](drag-race.ani.webp)
 
 ## Can someone explain what JIT actually means?
 JIT, or 'just in time' compilation is an optimisation technique used to increase the execution performance of interpreted languages without requiring a pre-compile step. Under the hood, these three engines are generating machine code on the fly, is then directly executed on the processor. This bypasses the overhead of the engine making a decision on what to do next after processing each instruction.

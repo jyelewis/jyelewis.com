@@ -18,7 +18,7 @@ const CustomLink: React.FC<any> = (props) => {
 };
 
 const CustomImg: React.FC<any> = (props) => {
-  if (isSSR) {
+  if (isSSR || props.src.indexOf(".ani") === -1) {
     return <img {...props} />;
   }
 
