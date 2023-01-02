@@ -66,6 +66,12 @@ img, .ff-container {
   }
 }
 
+@media (max-width: 768px) {
+  .post-image {
+    max-width: 100%;
+  }
+}
+
 h1 {
 
 }
