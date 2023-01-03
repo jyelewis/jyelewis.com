@@ -18,8 +18,8 @@ const CustomLink: React.FC<any> = (props) => {
 };
 
 const CustomImg: React.FC<any> = (props) => {
-  if (isSSR) {
-    return <img {...props} />;
+  if (isSSR || props.src.indexOf(".ani") === -1) {
+    return <img {...props} className="post-image" />;
   }
 
   return (
