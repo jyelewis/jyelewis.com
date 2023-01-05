@@ -9,6 +9,55 @@ module.exports = {
     "gatsby-plugin-react-helmet",
     "gatsby-plugin-sitemap",
     {
+      resolve: `gatsby-plugin-feed`,
+      options: {
+        query: `
+          {
+            site {
+              siteMetadata {
+                title
+                description
+                siteUrl
+                site_url: siteUrl
+              }
+            }
+          }
+        `,
+        feeds: [
+          {
+            serialize: ({ query: { site, allMdx } }) => {
+              return allMdx.nodes.map((node) => {
+                const [year, month, day] = node.slug.split("-");
+                return {
+                  title: node.frontmatter.title,
+                  description: node.frontmatter.description,
+                  date: `${year}-${month}-${day}`,
+                  url: site.siteMetadata.siteUrl + "/blog/" + node.slug,
+                  guid: site.siteMetadata.siteUrl + node.slug,
+                };
+              });
+            },
+            query: `
+              {
+                allMdx(sort: { fields: slug, order: DESC }) {
+                  nodes {
+                    frontmatter {
+                      title
+                      description
+                    }
+                    id
+                    slug
+                  }
+                }
+              }
+            `,
+            output: "/rss.xml",
+            title: "jyelewis.com",
+          },
+        ],
+      },
+    },
+    {
       resolve: "gatsby-plugin-manifest",
       options: {
         icon: "src/images/icon.png",

@@ -23,9 +23,6 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
           &copy; 2021-{new Date().getFullYear()} Jye Lewis
         </div>
         <div className="socials">
-          <Link to="/" title="Blog home">
-            blog
-          </Link>
           <Link
             to="mailto:jye@jyelewis.com"
             title="jye@jyelewis.com"
@@ -65,6 +62,9 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
             rel="noopener"
           >
             linkedin
+          </Link>
+          <Link to="/rss.xml" title="RSS Feed" target="_blank">
+            rss
           </Link>
         </div>
       </footer>
