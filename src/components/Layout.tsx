@@ -23,14 +23,14 @@ export const Layout: React.FC<Props> = ({ description, title, children }) => {
           &copy; 2021-{new Date().getFullYear()} Jye Lewis
         </div>
         <div className="socials">
-          <Link
-            to="mailto:jye@jyelewis.com"
+          <a
+            href="mailto:jye@jyelewis.com"
             title="jye@jyelewis.com"
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
           >
             email
-          </Link>
+          </a>
           <Link
             to="https://twitter.com/jyelew15"
             title="twitter: @jyelew15"
