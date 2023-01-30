@@ -1,0 +1,253 @@
+---
+title: "Full text search explained"
+description: "Finding a needle in a haystack, very quickly"
+timeToRead: 12
+---
+import {Tokenisation} from "./Tokenisation";
+import {CleanSearchText} from "./CleanSearchText";
+
+## What is full text search?
+Full text search (FTS for short) is a method of storing & querying blocks of text
+such that a user can search for any word of phrase and efficiently have all documents matching that phrase returned.
+
+Search engines such as Google are one of the largest examples of FTS. Effectively indexing all the visible content on the internet and performing searches across that dataset in under a second.
+
+## How full text search works
+> *Disclaimer: text search is a large and complicated topic, this has been intentionally reduced to a very simple version*. For a more complete & modern technique read up on [Inverted indexes](https://en.wikipedia.org/wiki/Inverted_index)
+
+Consider the phrase `"That fox is quick & brown!"`
+
+There are many matching words & phrases in here:
+ * `"That fox"`
+ * `"Fox"`
+ * `"Quick & brown"`
+ * `"Fox is quick"`
+ * `"Brown"`
+ * etc.
+
+Complicating further, someone searching may not use the exact same grammar in their search term, but expect a match.
+
+i.e. `"Fox: quick, brown"` should probably match `"That fox is quick & brown!"`
+
+### Tokenisation
+To achieve this, full text breaks text into many *tokens*.
+Tokenisation is a multi-step process.
+
+<Tokenisation />
+
+These tokens are then all stored in a format that allows efficiently searching for records based on the characters a token starts with.
+
+The easiest example of one of these formats is a paper dictionary, by storing all words alphabetically it's easy to find all words starting with `"tra"` by navigating back and forth through the book.
+
+### Searching tokens
+When a search term is entered, it goes through a similar clean up process as tokenisation.
+ 1. Convert to lowercase
+ 2. Flatten symbols & boundary characters
+ 3. Remove stop words
+
+<CleanSearchText />
+
+We can then use our paper dictionary trick to find any tokens we've stored starting with, or matching `fox quick brown`.
+Once we find a matching token, we look across to see what record it references and find out original document: `That fox is QUICK & brown!`
+
+### Index storage formats
+Now that we have a set of tokens, we need to store them in a format we can look up quickly.
+
+ * Use a big array
+    * This is the easiest solution, however inserting new tokens requires moving all subsequent items around to make room. For write heavy workloads this isn't optimal
+ * Use a [linked-list](https://en.wikipedia.org/wiki/Linked_list)
+    * Solves our insert problem, we can insert anywhere with minimal cost, however now searches require iterating every item in the list to find items that match, making search slow
+ * Use a [binary tree](https://en.wikipedia.org/wiki/Binary_tree)
+    * We can insert new items quickly, and efficiently search this tree to find items that match our search text!
+    * However, every token still needs to be stored in full, causing our index to take up significantly more space than our original items
+ * Use a [radix tree](https://en.wikipedia.org/wiki/Radix_tree)
+    * This allows us to insert new items quickly, similar to the binary tree - however duplicate text from tokens is stored on the nodes as we descend the tree, allowing us to save disk space
+
+
+<a style={{backgroundColor: "white", color: "#000", display: "block", margin: "0 auto", maxWidth: "400px", textAlign: "right", borderRadius: "3px", padding: "0 5px"}} href="https://commons.wikimedia.org/w/index.php?curid=2118795">
+  <img src="radix-tree.svg" alt="Radix tree example" />
+
+  Example radix tree<br />By Claudio Rocchini - Own work, CC BY 2.5
+</a>
+
+
+## Implementation
+### Clean text & remove stop words
+```typescript
+const stopWords = `i
+a
+an
+and
+this
+...etc
+`;
+
+export function cleanText(inputText: string): string {
+  const cleanTextWithStopwords = inputText
+    //   1. Convert to lowercase
+    .toLocaleLowerCase()
+    //   2a. Flatten symbols & boundary characters into a standard character
+    .replace(/[^a-z0-9 ]/g, " ")
+    //   2b. reduce to 1 sequential delimiter
+    .replace(/ +/g, " ")
+    .trim();
+
+  //   3. Remove stop words (words insignificant to searching, i.e 'the', 'is', 'a', 'their')
+  return stopWords
+    .reduce(
+      (str, stopWord) => ` ${str} `.replace(` ${stopWord} `, " "),
+      cleanTextWithStopwords
+    )
+    .trim();
+}
+
+assert(cleanText("This is a nice day!") === "nice day")
+```
+This should produce the same output as the interactive example in ['Searching tokens'](#searching-tokens)
+
+### Split cleaned text into tokens
+```typescript
+export function tokenise(inputText: string) {
+  // using our function from above
+  const cleanedText = cleanText(inputText);
+
+  //   4. Break into tokens on boundaries (delimiters such as hyphen, space, parentheses)
+  let splitIndex = 0;
+  const tokens: string[] = [];
+  for (const word of cleanedText.split(" ")) {
+    tokens.push(cleanedText.substring(splitIndex));
+    splitIndex += word.length + 1;
+  }
+
+  return tokens;
+}
+```
+This should produce the same output as the interactive example in ['Tokenisation'](#tokenisation)
+
+### Storing our tokens in a searchable structure
+A simple structure we can use for searching is a [binary tree](https://en.wikipedia.org/wiki/Binary_tree).
+This allows both efficiently inserting new tokens and quickly searching for matching tokens: `O(log(n))` at best, `O(n)` at worst.
+
+Let's use the open source [Binary search tree](https://www.npmjs.com/package/binary-search-tree) from NPM to avoid implementing this from scratch (possibly a topic for another post).
+
+This package allows us to (among other features)
+ * Add items: `bst.insert(key, value)`
+ * Query items within a range: `bst.betweenBounds({ $gte: 2, $lte: 6, })`
+ * Provide custom compare functions: `new BinarySearchTree({ compareKeys: myCustomFunction })`
+
+This should be enough to create a custom search tree for our text tokens
+
+### Putting it all together
+```typescript
+import { BinarySearchTree } from "binary-search-tree";
+import { cleanText, tokenise } from "./utils/tokenise";
+
+// custom type for the documents we want to store in this db
+// 'id' would allow us to look up the original document in another DB (i.e Postgresql)
+interface Document {
+  id: string;
+  text: string;
+}
+
+export class FullTextSearch {
+  private tokensBST = new BinarySearchTree({
+    // provide a custom compare function for when we are searching
+    // this allows us to search by matching the _start_ of a token
+    compareKeys: (searchText: string, tokenText: string) => {
+      // we consider tokens equal if they start with the search text
+      if (searchText.startsWith(tokenText)) return 0;
+
+      // otherwise sort alphabetically
+      return searchText.localeCompare(tokenText);
+    },
+  });
+
+  public indexDocument(document: Document) {
+    // create a list of tokens from our document
+    tokenise(document.text)
+      // insert each token into our BST for future lookups
+      .forEach((token) => this.tokensBST.insert(token, document));
+  }
+
+  public search(searchTerm: string): Set<Document> {
+    // clean our search term
+    // this will remove any characters that are never found in indexed tokens
+    const cleanedSearchTerm = cleanText(searchTerm);
+
+    // perform a binary search of our sorted tokens to find everything matching
+    // return as a set, we shouldn't have any duplicate documents
+    return new Set<Document>(
+      this.tokensBST.betweenBounds({
+        $gte: cleanedSearchTerm,
+        $lte: cleanedSearchTerm,
+      })
+    );
+  }
+}
+```
+
+Done! We can now create FullTextSearch instances and add some documents for searching
+
+![Searching book](search-book.ani.webp)
+
+
+### Using it
+```typescript
+const fts = new FullTextSearch();
+
+// load our 'db' up with some example documents
+fts.indexDocument({
+  id: "1",
+  text: "Hello world",
+});
+fts.indexDocument({
+  id: "2",
+  text: "Hello Friends",
+});
+fts.indexDocument({
+  id: "4",
+  text: "Hello, hello!",
+});
+fts.indexDocument({
+  id: "3",
+  text: "Foo bar",
+});
+
+// throw some example queries at it
+const exampleQueries = ["hello!", "world", "friends", "foo", "bar"];
+exampleQueries.forEach((searchTerm) =>
+  console.log(`'${searchTerm}':`, fts.search(searchTerm))
+);
+```
+
+Produces, as expected
+```text
+'hello!': Set(3) {
+  { id: '2', text: 'Hello Friends' },
+  { id: '4', text: 'Hello, hello!' },
+  { id: '1', text: 'Hello world' }
+}
+'world': Set(1) { { id: '1', text: 'Hello world' } }
+'friends': Set(1) { { id: '2', text: 'Hello Friends' } }
+'foo': Set(1) { { id: '3', text: 'Foo bar' } }
+'bar': Set(1) { { id: '3', text: 'Foo bar' } }
+```
+
+## Fight me, I'll could have done this with a big old text file & grep
+Of course, we could have also solved this problem by simply searching for substrings in every document
+```typescript
+export function search(documents: Document[], searchTerm: string): Document[] {
+  return documents.filter(document => document.text.contains(searchTerm));
+}
+```
+
+However, this would punish the user for even slightly mis-matching their search term from what is in the document. And critically, wouldn't scale as documents[] grew in size. Imagine executing this function over a database of 1 million books (i.e for searching a library).
+
+Here we can provide kind search results, ignoring punctuation, capitalisation and word that don't significantly change the meaning of a sentence.
+This solution will find results quickly, with a better storage system (e.g. AVL tree) we can also ensure searches can always complete with in `O(log(num_tokens))`.
+
+I recently used a similar technique to [(ab)use AWS DynamoDB as a search engine](https://github.com/jyelewis/DynamoDB-text-search).
+
+## In reality
+Text search is a very solved problem, if you're looking to implement search within your application
+I'd recommend checking out [Elastic Search](https://www.elastic.co/) or [Postgres text search](https://www.postgresql.org/docs/current/textsearch.html).
